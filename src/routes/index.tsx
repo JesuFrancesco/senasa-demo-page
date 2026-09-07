@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { DEPARTAMENTOS, getDistritos, getProvincias, CENTROS_POBLADOS } from "@/data/ubigeo";
 import {
   Dialog,
@@ -12,42 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 
-const searchSchema = z.object({
-  nombre: z.string().optional(),
-  nombres: z.string().optional(),
-  apellido: z.string().optional(),
-  apellidos: z.string().optional(),
-  tipoDoc: z.string().optional(),
-  tipodoc: z.string().optional(),
-  nroDoc: z.string().optional(),
-  nrodoc: z.string().optional(),
-  dni: z.string().optional(),
-  direccion: z.string().optional(),
-  telefono: z.string().optional(),
-  correo: z.string().optional(),
-  email: z.string().optional(),
-  departamento: z.string().optional(),
-  provincia: z.string().optional(),
-  distrito: z.string().optional(),
-  centroPoblado: z.string().optional(),
-  centropoblado: z.string().optional(),
-  referencia: z.string().optional(),
-  especie: z.string().optional(),
-  organo: z.string().optional(),
-  areaSembrada: z.string().optional(),
-  areasembrada: z.string().optional(),
-  peso: z.string().optional(),
-  pesoUnidad: z.string().optional(),
-  pesoValor: z.string().optional(),
-  areaUnidad: z.string().optional(),
-  areaValor: z.string().optional(),
-  descripcion: z.string().optional(),
-  lugar: z.string().optional(),
-  tab: z.string().optional(),
-});
-
 export const Route = createFileRoute("/")({
-  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Notificación de Nueva Plaga — SIGSVE SENASA" },
@@ -73,95 +37,33 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return <span className={`text-[13px] ${required ? "text-field-required" : "text-foreground"}`}>{children}</span>;
 }
 
-function getParam(search: z.infer<typeof searchSchema>, ...keys: string[]): string {
-  for (const k of keys) {
-    const v = (search as Record<string, unknown>)[k];
-    if (typeof v === "string" && v.trim() !== "") return v.trim();
-  }
-  return "";
-}
-
 function Index() {
-  const search = Route.useSearch();
-
   const todayStr = useMemo(() => new Date().toLocaleDateString("es-PE"), []);
 
-  // Tab / lugar from query
-  const initialTab: 1 | 2 = search.tab === "2" || search.tab === "II" ? 2 : 1;
-  const initialLugar = search.lugar === "almacen" || search.lugar === "almacén" ? "almacen" : "campo";
-
-  const [tab, setTab] = useState<1 | 2>(initialTab);
-  const [lugar, setLugar] = useState(initialLugar);
+  const [tab, setTab] = useState<1 | 2>(1);
+  const [lugar, setLugar] = useState("campo");
 
   // Form fields
-  const [nombres, setNombres] = useState(() => getParam(search, "nombre", "nombres"));
-  const [apellidos, setApellidos] = useState(() => getParam(search, "apellido", "apellidos"));
-  const [tipoDoc, setTipoDoc] = useState(() => getParam(search, "tipoDoc", "tipodoc"));
-  const [nroDoc, setNroDoc] = useState(() => getParam(search, "nroDoc", "nrodoc", "dni"));
-  const [direccion, setDireccion] = useState(() => getParam(search, "direccion"));
-  const [telefono, setTelefono] = useState(() => getParam(search, "telefono"));
-  const [correo, setCorreo] = useState(() => getParam(search, "correo", "email"));
-  const [departamento, setDepartamento] = useState(() => getParam(search, "departamento"));
-  const [provincia, setProvincia] = useState(() => getParam(search, "provincia"));
-  const [distrito, setDistrito] = useState(() => getParam(search, "distrito"));
-  const [centroPoblado, setCentroPoblado] = useState(() => getParam(search, "centroPoblado", "centropoblado"));
-  const [referencia, setReferencia] = useState(() => getParam(search, "referencia"));
-  const [especie, setEspecie] = useState(() => getParam(search, "especie"));
-  const [organo, setOrgano] = useState(() => getParam(search, "organo"));
-  const [areaSembrada, setAreaSembrada] = useState(() => getParam(search, "areaSembrada", "areasembrada"));
-  const [pesoUnidad, setPesoUnidad] = useState(() => getParam(search, "pesoUnidad") || getParam(search, "peso"));
-  const [pesoValor, setPesoValor] = useState(() => getParam(search, "pesoValor"));
-  const [areaUnidad, setAreaUnidad] = useState(() => getParam(search, "areaUnidad"));
-  const [areaValor, setAreaValor] = useState(() => getParam(search, "areaValor"));
-  const [descripcion, setDescripcion] = useState(() => getParam(search, "descripcion"));
-
-  // Sync if URL changes (e.g. navigation with new params)
-  useEffect(() => {
-    const n = getParam(search, "nombre", "nombres");
-    if (n) setNombres(n);
-    const a = getParam(search, "apellido", "apellidos");
-    if (a) setApellidos(a);
-    const td = getParam(search, "tipoDoc", "tipodoc");
-    if (td) setTipoDoc(td);
-    const nd = getParam(search, "nroDoc", "nrodoc", "dni");
-    if (nd) setNroDoc(nd);
-    const d = getParam(search, "direccion");
-    if (d) setDireccion(d);
-    const t = getParam(search, "telefono");
-    if (t) setTelefono(t);
-    const c = getParam(search, "correo", "email");
-    if (c) setCorreo(c);
-    const dep = getParam(search, "departamento");
-    if (dep && DEPARTAMENTOS.includes(dep as never)) setDepartamento(dep);
-    const prov = getParam(search, "provincia");
-    if (prov) setProvincia(prov);
-    const dist = getParam(search, "distrito");
-    if (dist) setDistrito(dist);
-    const cp = getParam(search, "centroPoblado", "centropoblado");
-    if (cp) setCentroPoblado(cp);
-    const ref = getParam(search, "referencia");
-    if (ref) setReferencia(ref);
-    const esp = getParam(search, "especie");
-    if (esp) setEspecie(esp);
-    const org = getParam(search, "organo");
-    if (org) setOrgano(org);
-    const as = getParam(search, "areaSembrada", "areasembrada");
-    if (as) setAreaSembrada(as);
-    const pu = getParam(search, "pesoUnidad") || getParam(search, "peso");
-    if (pu) setPesoUnidad(pu);
-    const pv = getParam(search, "pesoValor");
-    if (pv) setPesoValor(pv);
-    const au = getParam(search, "areaUnidad");
-    if (au) setAreaUnidad(au);
-    const av = getParam(search, "areaValor");
-    if (av) setAreaValor(av);
-    const desc = getParam(search, "descripcion");
-    if (desc) setDescripcion(desc);
-    if (search.lugar === "almacen" || search.lugar === "almacén") setLugar("almacen");
-    else if (search.lugar === "campo") setLugar("campo");
-    if (search.tab === "2") setTab(2);
-    else if (search.tab === "1") setTab(1);
-  }, [search]);
+  const [nombres, setNombres] = useState("");
+  const [apellidos, setApellidos] = useState("");
+  const [tipoDoc, setTipoDoc] = useState("");
+  const [nroDoc, setNroDoc] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [departamento, setDepartamento] = useState("");
+  const [provincia, setProvincia] = useState("");
+  const [distrito, setDistrito] = useState("");
+  const [centroPoblado, setCentroPoblado] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [especie, setEspecie] = useState("");
+  const [organo, setOrgano] = useState("");
+  const [areaSembrada, setAreaSembrada] = useState("");
+  const [pesoUnidad, setPesoUnidad] = useState("");
+  const [pesoValor, setPesoValor] = useState("");
+  const [areaUnidad, setAreaUnidad] = useState("");
+  const [areaValor, setAreaValor] = useState("");
+  const [descripcion, setDescripcion] = useState("");
 
   // Cascading ubigeo
   const provinciasList = useMemo(() => (departamento ? getProvincias(departamento) : []), [departamento]);
@@ -170,7 +72,6 @@ function Index() {
   // Reset provincia/distrito when parent changes
   useEffect(() => {
     if (departamento && provinciasList.length && !provinciasList.includes(provincia)) {
-      // keep query-provincia if valid else reset
       if (provincia !== "") setProvincia("");
     }
     if (!departamento && provincia) setProvincia("");
@@ -221,7 +122,8 @@ function Index() {
   const removeFile = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => {
-      URL.revokeObjectURL(prev[idx]);
+      const url = prev[idx];
+      if (url) URL.revokeObjectURL(url);
       return prev.filter((_, i) => i !== idx);
     });
     toast.info("Imagen eliminada");
@@ -316,11 +218,11 @@ function Index() {
   }, [distrito, provincia]);
 
   return (
-    <main className="min-h-screen bg-background py-6">
+    <main className="min-h-screen bg-background px-2 py-3 sm:px-0 sm:py-6">
       <div className="mx-auto max-w-4xl border border-legacy-border bg-panel shadow-sm">
         {/* Cabecera institucional */}
-        <header className="flex items-center gap-4 border-b-2 border-senasa-red px-5 py-4">
-          <div className="flex items-center gap-2 border border-legacy-border px-3 py-2">
+        <header className="flex flex-col gap-3 border-b-2 border-senasa-red px-3 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-4">
+          <div className="flex items-center gap-2 self-start border border-legacy-border px-3 py-2">
             <span className="text-[11px] font-bold tracking-tight text-senasa-red">PERÚ</span>
             <span className="border-l border-legacy-border pl-2 text-[9px] leading-tight text-muted-foreground">
               Ministerio
@@ -330,18 +232,18 @@ function Index() {
             </span>
           </div>
           <div>
-            <h1 className="text-[15px] font-bold text-senasa-blue">
+            <h1 className="text-[13px] font-bold text-senasa-blue sm:text-[15px]">
               Ministerio de Agricultura
               <br />
               Servicio Nacional de Sanidad Agraria - SENASA
             </h1>
-            <p className="mt-2 text-[14px] font-bold text-senasa-red">
+            <p className="mt-1 text-[12px] font-bold text-senasa-red sm:mt-2 sm:text-[14px]">
               Sistema Integrado de Gestión de Sanidad Vegetal - SIGSVE
             </p>
           </div>
         </header>
 
-        <div className="px-4 pb-4">
+        <div className="px-3 pb-4 sm:px-4">
           <div className="mt-3 bg-panel-header px-3 py-1.5 text-[12px] font-bold text-senasa-blue">
             NOTIFICACIÓN DE OCURRENCIA DE NUEVA PLAGA
           </div>
@@ -362,32 +264,28 @@ function Index() {
             ))}
           </div>
 
-          <form className="border border-t-0 border-legacy-border bg-tab-active p-5" onSubmit={handleEnviar}>
+          <form className="border border-t-0 border-legacy-border bg-tab-active p-3 sm:p-5" onSubmit={handleEnviar}>
             {tab === 1 ? (
               <div className="space-y-5">
                 <p className="text-[12.5px] leading-relaxed">
                   Estimado usuario, usted puede notificar al SENASA sobre cualquier problema fitosanitario nuevo que se presente en su
                   cultivo o almacén. Para ello deberá llenar los siguientes ítems, enviarlos y el SENASA se contactará con usted.
-                  <br />
-                  <span className="text-[11px] text-muted-foreground">
-                    Tip: puede prellenar con query params ej. <code>?nombre=Juan&apellido=Perez&departamento=Lima&provincia=Lima&distrito=Miraflores&correo=juan@mail.com</code>
-                  </span>
                 </p>
 
                 <fieldset className="legacy-fieldset">
                   <legend className="px-1 text-[12px] text-senasa-blue">Datos del notificante</legend>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Nombres:</Label>
                       </div>
-                      <input className="legacy-input-required flex-1" value={nombres} onChange={(e) => setNombres(e.target.value)} placeholder="Ej. Juan" />
+                      <input className="legacy-input-required w-full min-w-0 flex-1" value={nombres} onChange={(e) => setNombres(e.target.value)} placeholder="Ej. Juan" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Tipo Doc.:</Label>
                       </div>
-                      <select className="legacy-input flex-1" value={tipoDoc} onChange={(e) => setTipoDoc(e.target.value)}>
+                      <select className="legacy-input w-full min-w-0 flex-1" value={tipoDoc} onChange={(e) => setTipoDoc(e.target.value)}>
                         <option value="">Seleccione...</option>
                         {TIPO_DOC.map((t) => (
                           <option key={t} value={t}>
@@ -396,41 +294,41 @@ function Index() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Apellidos:</Label>
                       </div>
-                      <input className="legacy-input-required flex-1" value={apellidos} onChange={(e) => setApellidos(e.target.value)} placeholder="Ej. Perez" />
+                      <input className="legacy-input-required w-full min-w-0 flex-1" value={apellidos} onChange={(e) => setApellidos(e.target.value)} placeholder="Ej. Perez" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>N° Doc.:</Label>
                       </div>
-                      <input className="legacy-input flex-1" value={nroDoc} onChange={(e) => setNroDoc(e.target.value)} placeholder="12345678" />
+                      <input className="legacy-input w-full min-w-0 flex-1" value={nroDoc} onChange={(e) => setNroDoc(e.target.value)} placeholder="12345678" />
                     </div>
                   </div>
                 </fieldset>
 
                 <fieldset className="legacy-fieldset">
                   <legend className="px-1 text-[12px] text-senasa-blue">Datos de contacto - Llenar al menos un ítem</legend>
-                  <div className="flex gap-2">
-                    <div className="w-24 pt-1 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                    <div className="w-full shrink-0 pt-0 text-left sm:w-24 sm:pt-1 sm:text-right">
                       <Label>Dirección:</Label>
                     </div>
-                    <textarea rows={4} className="legacy-input flex-1 resize-none" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+                    <textarea rows={4} className="legacy-input w-full min-w-0 flex-1 resize-none" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label>Teléfono:</Label>
                       </div>
-                      <input className="legacy-input flex-1" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="999 999 999" />
+                      <input className="legacy-input w-full min-w-0 flex-1" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="999 999 999" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-28 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-28 sm:text-right">
                         <Label>Correo elect.:</Label>
                       </div>
-                      <input type="email" className="legacy-input flex-1" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" />
+                      <input type="email" className="legacy-input w-full min-w-0 flex-1" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" />
                     </div>
                   </div>
                   <p className="mt-3 text-[12.5px]">Ingresar correo electrónico para un mejor seguimiento de su notificación.</p>
@@ -439,12 +337,12 @@ function Index() {
                 <fieldset className="legacy-fieldset">
                   <legend className="px-1 text-[12px] text-senasa-blue">Ubicación de la zona de ocurrencia de la plaga</legend>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Departamento:</Label>
                       </div>
                       <select
-                        className="legacy-input flex-1"
+                        className="legacy-input w-full min-w-0 flex-1"
                         value={departamento}
                         onChange={(e) => {
                           setDepartamento(e.target.value);
@@ -460,12 +358,12 @@ function Index() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Provincia:</Label>
                       </div>
                       <select
-                        className="legacy-input flex-1"
+                        className="legacy-input w-full min-w-0 flex-1"
                         value={provincia}
                         onChange={(e) => {
                           setProvincia(e.target.value);
@@ -481,11 +379,11 @@ function Index() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label required>Distrito:</Label>
                       </div>
-                      <select className="legacy-input flex-1" value={distrito} onChange={(e) => setDistrito(e.target.value)} disabled={!provincia}>
+                      <select className="legacy-input w-full min-w-0 flex-1" value={distrito} onChange={(e) => setDistrito(e.target.value)} disabled={!provincia}>
                         <option value="">{provincia ? "Seleccione..." : "Seleccione provincia primero"}</option>
                         {distritosList.map((d) => (
                           <option key={d} value={d}>
@@ -494,45 +392,47 @@ function Index() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label>C. poblado:</Label>
                       </div>
-                      <input
-                        className="legacy-input flex-1"
-                        placeholder="Seleccione..."
-                        value={centroPoblado}
-                        onChange={(e) => setCentroPoblado(e.target.value)}
-                        list="centros-list"
-                      />
-                      <datalist id="centros-list">
-                        {centrosSugeridos.map((c) => (
-                          <option key={c} value={c} />
-                        ))}
-                      </datalist>
-                      <button type="button" className="legacy-input px-2" aria-label="Buscar centro poblado" onClick={handleSearchCentro}>
-                        🔍
-                      </button>
-                      <button type="button" className="legacy-input px-2" aria-label="Limpiar centro poblado" onClick={handleClearCentro}>
-                        ✕
-                      </button>
+                      <div className="flex w-full min-w-0 flex-1 gap-1">
+                        <input
+                          className="legacy-input w-full min-w-0 flex-1"
+                          placeholder="Seleccione..."
+                          value={centroPoblado}
+                          onChange={(e) => setCentroPoblado(e.target.value)}
+                          list="centros-list"
+                        />
+                        <datalist id="centros-list">
+                          {centrosSugeridos.map((c) => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
+                        <button type="button" className="legacy-input shrink-0 px-2" aria-label="Buscar centro poblado" onClick={handleSearchCentro}>
+                          🔍
+                        </button>
+                        <button type="button" className="legacy-input shrink-0 px-2" aria-label="Limpiar centro poblado" onClick={handleClearCentro}>
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:col-span-2">
-                      <div className="w-24 text-right">
+                    <div className="flex flex-col gap-1 sm:col-span-2 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="w-full shrink-0 text-left sm:w-24 sm:text-right">
                         <Label>Referencia:</Label>
                       </div>
-                      <input className="legacy-input flex-1" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+                      <input className="legacy-input w-full min-w-0 flex-1" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
                     </div>
                   </div>
                 </fieldset>
 
-                <div className="flex flex-wrap items-center gap-3 pl-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:pl-6">
                   <Label>Número de archivos adjuntos:</Label>
                   <input readOnly value={files.length} className="legacy-input w-16 text-center" />
                   {files.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {files.map((f, i) => (
-                        <span key={i} className="rounded border border-legacy-border bg-white px-2 py-1 text-[11px]">
+                        <span key={i} className="break-all rounded border border-legacy-border bg-white px-2 py-1 text-[11px]">
                           {f.name}{" "}
                           <button type="button" onClick={() => removeFile(i)} className="ml-1 text-senasa-red hover:underline">
                             ✕
@@ -546,7 +446,7 @@ function Index() {
                   )}
                 </div>
                 {previews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 pl-6 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 sm:pl-6">
                     {previews.map((src, i) => (
                       <button key={i} type="button" onClick={() => openAdjust(i)} className="overflow-hidden border border-legacy-border">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -555,32 +455,33 @@ function Index() {
                     ))}
                   </div>
                 )}
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelected} />
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-6 pl-4">
+                <div className="flex flex-col gap-2 pl-0 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 sm:pl-4">
                   <Label>Problema fitosanitario observado en:</Label>
-                  {["campo", "almacen"].map((v) => (
-                    <label key={v} className="flex items-center gap-2 text-[13px]">
-                      <input type="radio" name="lugar" checked={lugar === v} onChange={() => setLugar(v as never)} />
-                      {v === "campo" ? "Campo" : "Almacén"}
-                    </label>
-                  ))}
+                  <div className="flex gap-4">
+                    {["campo", "almacen"].map((v) => (
+                      <label key={v} className="flex items-center gap-2 text-[13px]">
+                        <input type="radio" name="lugar" checked={lugar === v} onChange={() => setLugar(v as never)} />
+                        {v === "campo" ? "Campo" : "Almacén"}
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                       <Label required>Esp. veg. afectada:</Label>
                     </div>
-                    <input className="legacy-input-required flex-1" value={especie} onChange={(e) => setEspecie(e.target.value)} placeholder="Ej. Papa, Maíz" />
+                    <input className="legacy-input-required w-full min-w-0 flex-1" value={especie} onChange={(e) => setEspecie(e.target.value)} placeholder="Ej. Papa, Maíz" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                       <Label required>Órgano afectado:</Label>
                     </div>
-                    <select className="legacy-input-required flex-1" value={organo} onChange={(e) => setOrgano(e.target.value)}>
+                    <select className="legacy-input-required w-full min-w-0 flex-1" value={organo} onChange={(e) => setOrgano(e.target.value)}>
                       <option value="">Seleccione...</option>
                       {ORGANOS.map((o) => (
                         <option key={o} value={o}>
@@ -589,55 +490,60 @@ function Index() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                       <Label>Área sembrada (ha):</Label>
                     </div>
-                    <input className="legacy-input flex-1" value={areaSembrada} onChange={(e) => setAreaSembrada(e.target.value)} placeholder="0.00" />
+                    <input className="legacy-input w-full min-w-0 flex-1" value={areaSembrada} onChange={(e) => setAreaSembrada(e.target.value)} placeholder="0.00" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                       <Label>Peso:</Label>
                     </div>
-                    <select className="legacy-input w-24" value={pesoUnidad} onChange={(e) => setPesoUnidad(e.target.value)}>
-                      <option value="">Selecc.</option>
-                      <option value="kg">kg</option>
-                      <option value="t">t</option>
-                    </select>
-                    <input className="legacy-input flex-1" value={pesoValor} onChange={(e) => setPesoValor(e.target.value)} placeholder="0" />
+                    <div className="flex w-full min-w-0 flex-1 gap-2">
+                      <select className="legacy-input w-24 shrink-0 sm:w-24" value={pesoUnidad} onChange={(e) => setPesoUnidad(e.target.value)}>
+                        <option value="">Selecc.</option>
+                        <option value="kg">kg</option>
+                        <option value="t">t</option>
+                      </select>
+                      <input className="legacy-input w-full min-w-0 flex-1" value={pesoValor} onChange={(e) => setPesoValor(e.target.value)} placeholder="0" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 text-right">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                       <Label>Área afectada:</Label>
                     </div>
-                    <select className="legacy-input w-28" value={areaUnidad} onChange={(e) => setAreaUnidad(e.target.value)}>
-                      <option value="">Seleccione.</option>
-                      <option value="ha">ha</option>
-                      <option value="m²">m²</option>
-                    </select>
-                    <input className="legacy-input w-28" value={areaValor} onChange={(e) => setAreaValor(e.target.value)} placeholder="0" />
+                    <div className="flex w-full min-w-0 flex-1 gap-2">
+                      <select className="legacy-input w-28 shrink-0" value={areaUnidad} onChange={(e) => setAreaUnidad(e.target.value)}>
+                        <option value="">Seleccione.</option>
+                        <option value="ha">ha</option>
+                        <option value="m²">m²</option>
+                      </select>
+                      <input className="legacy-input w-28 min-w-0 flex-1 sm:w-28" value={areaValor} onChange={(e) => setAreaValor(e.target.value)} placeholder="0" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <div className="w-32 pt-1 text-right">
+                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                  <div className="w-full shrink-0 pt-0 text-left sm:w-32 sm:pt-1 sm:text-right">
                     <Label required>Descripción del problema:</Label>
                   </div>
-                  <textarea rows={12} className="legacy-input flex-1 resize-none" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Describa síntomas, incidencia, fecha de aparición..." />
+                  <textarea rows={8} className="legacy-input w-full min-w-0 flex-1 resize-none sm:rows-[12]" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Describa síntomas, incidencia, fecha de aparición..." />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="w-32 text-right">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                  <div className="w-full shrink-0 text-left sm:w-32 sm:text-right">
                     <Label>Fecha notificación:</Label>
                   </div>
-                  <input readOnly value={todayStr} className="legacy-input w-32" />
+                  <input readOnly value={todayStr} className="legacy-input w-full sm:w-32" />
                 </div>
               </div>
             )}
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelected} />
 
             {/* Barra de acciones */}
-            <div className="mt-6 flex items-center justify-between border-t border-legacy-border pt-2 text-[12.5px]">
-              <div className="flex gap-5">
+            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-legacy-border pt-3 text-[12.5px] sm:flex-row sm:items-center sm:justify-between sm:pt-2">
+              <div className="flex flex-wrap gap-3 sm:gap-5">
                 <button type="button" className="text-senasa-blue hover:underline" onClick={handleVistaPrevia}>
                   📄 Vista previa
                 </button>
@@ -650,7 +556,7 @@ function Index() {
                   </button>
                 )}
               </div>
-              <button type="submit" className="font-bold text-senasa-blue hover:underline">
+              <button type="submit" className="w-full bg-senasa-blue px-4 py-2 font-bold text-white hover:opacity-90 sm:w-auto sm:bg-transparent sm:px-0 sm:py-0 sm:text-senasa-blue sm:hover:bg-transparent sm:hover:underline">
                 💾 Enviar
               </button>
             </div>
@@ -731,11 +637,11 @@ function Index() {
               <div className="space-y-3">
                 <div>
                   <label className="text-xs">Zoom: {zoom}%</label>
-                  <Slider value={[zoom]} min={50} max={200} step={5} onValueChange={([v]) => setZoom(v)} />
+                  <Slider value={[zoom]} min={50} max={200} step={5} onValueChange={([v]) => { if (v !== undefined) setZoom(v); }} />
                 </div>
                 <div>
                   <label className="text-xs">Rotación: {rotation}°</label>
-                  <Slider value={[rotation]} min={0} max={360} step={15} onValueChange={([v]) => setRotation(v)} />
+                  <Slider value={[rotation]} min={0} max={360} step={15} onValueChange={([v]) => { if (v !== undefined) setRotation(v); }} />
                 </div>
                 <div className="flex justify-between text-xs">
                   <span>{files[adjustIndex]?.name}</span>
