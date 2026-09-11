@@ -43,7 +43,11 @@ type SenasaSearch = {
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): SenasaSearch => {
-    const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+    // TanStack Router coerces numeric query values (?nroDoc=12345678) to
+    // numbers, while the form state is all strings — coerce back instead of
+    // dropping them (the classic int/str schema mismatch).
+    const str = (v: unknown) =>
+      typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined;
     return {
       nombre: str(search["nombre"]),
       apellido: str(search["apellido"]),
@@ -128,14 +132,27 @@ function Index() {
   useEffect(() => {
     if (search.nombre) setNombres(search.nombre);
     if (search.apellido) setApellidos(search.apellido);
-    if (search.tipoDoc) setTipoDoc(search.tipoDoc);
+    // Selects only accept known options: ignore unknown values instead of
+    // leaving the select in a blank state the cascading effects would wipe.
+    if (search.tipoDoc && (TIPO_DOC as readonly string[]).includes(search.tipoDoc)) {
+      setTipoDoc(search.tipoDoc);
+    }
     if (search.nroDoc) setNroDoc(search.nroDoc);
     if (search.direccion) setDireccion(search.direccion);
     if (search.telefono) setTelefono(search.telefono);
     if (search.correo) setCorreo(search.correo);
-    if (search.departamento) setDepartamento(search.departamento);
-    if (search.provincia) setProvincia(search.provincia);
-    if (search.distrito) setDistrito(search.distrito);
+    const dep = search.departamento;
+    if (dep && (DEPARTAMENTOS as readonly string[]).includes(dep)) {
+      setDepartamento(dep);
+      const prov = search.provincia;
+      if (prov && getProvincias(dep).includes(prov)) {
+        setProvincia(prov);
+        const dist = search.distrito;
+        if (dist && getDistritos(prov).includes(dist)) {
+          setDistrito(dist);
+        }
+      }
+    }
     if (search.centroPoblado) setCentroPoblado(search.centroPoblado);
     if (search.referencia) setReferencia(search.referencia);
     if (search.especie) {
@@ -151,6 +168,8 @@ function Index() {
     if (search.descripcion) setDescripcion(search.descripcion);
     if (search.lugar === "campo" || search.lugar === "almacen") setLugar(search.lugar);
     if (search.tab === "1" || search.tab === "2") setTab(Number(search.tab) as 1 | 2);
+    // Mount-once prefill: re-running would clobber user input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // PoC image handoff: the Flutter app appends the detected photo as a data
@@ -174,7 +193,6 @@ function Index() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cascading ubigeo
