@@ -3,6 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DEPARTAMENTOS, getDistritos, getProvincias, CENTROS_POBLADOS } from "@/data/ubigeo";
 import {
+  consumeSenasaImageFragment,
+  parseSenasaImageFragment,
+  senasaDataUrlToFile,
+} from "@/lib/senasa-prefill";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -11,7 +16,59 @@ import {
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 
+type SenasaSearch = {
+  nombre?: string | undefined;
+  apellido?: string | undefined;
+  tipoDoc?: string | undefined;
+  nroDoc?: string | undefined;
+  direccion?: string | undefined;
+  telefono?: string | undefined;
+  correo?: string | undefined;
+  departamento?: string | undefined;
+  provincia?: string | undefined;
+  distrito?: string | undefined;
+  centroPoblado?: string | undefined;
+  referencia?: string | undefined;
+  especie?: string | undefined;
+  organo?: string | undefined;
+  areaSembrada?: string | undefined;
+  pesoUnidad?: string | undefined;
+  pesoValor?: string | undefined;
+  areaUnidad?: string | undefined;
+  areaValor?: string | undefined;
+  descripcion?: string | undefined;
+  lugar?: string | undefined;
+  tab?: string | undefined;
+};
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): SenasaSearch => {
+    const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+    return {
+      nombre: str(search["nombre"]),
+      apellido: str(search["apellido"]),
+      tipoDoc: str(search["tipoDoc"]),
+      nroDoc: str(search["nroDoc"]),
+      direccion: str(search["direccion"]),
+      telefono: str(search["telefono"]),
+      correo: str(search["correo"]),
+      departamento: str(search["departamento"]),
+      provincia: str(search["provincia"]),
+      distrito: str(search["distrito"]),
+      centroPoblado: str(search["centroPoblado"]),
+      referencia: str(search["referencia"]),
+      especie: str(search["especie"]),
+      organo: str(search["organo"]),
+      areaSembrada: str(search["areaSembrada"]),
+      pesoUnidad: str(search["pesoUnidad"]),
+      pesoValor: str(search["pesoValor"]),
+      areaUnidad: str(search["areaUnidad"]),
+      areaValor: str(search["areaValor"]),
+      descripcion: str(search["descripcion"]),
+      lugar: str(search["lugar"]),
+      tab: str(search["tab"]),
+    };
+  },
   head: () => ({
     meta: [
       { title: "Notificación de Nueva Plaga — SIGSVE SENASA" },
@@ -64,6 +121,61 @@ function Index() {
   const [areaUnidad, setAreaUnidad] = useState("");
   const [areaValor, setAreaValor] = useState("");
   const [descripcion, setDescripcion] = useState("");
+
+  // Prefill from SENASA redirect query params (server is a pure text-URL
+  // formatter: nombre, especie, descripcion, ...). Runs once on mount.
+  const search = Route.useSearch();
+  useEffect(() => {
+    if (search.nombre) setNombres(search.nombre);
+    if (search.apellido) setApellidos(search.apellido);
+    if (search.tipoDoc) setTipoDoc(search.tipoDoc);
+    if (search.nroDoc) setNroDoc(search.nroDoc);
+    if (search.direccion) setDireccion(search.direccion);
+    if (search.telefono) setTelefono(search.telefono);
+    if (search.correo) setCorreo(search.correo);
+    if (search.departamento) setDepartamento(search.departamento);
+    if (search.provincia) setProvincia(search.provincia);
+    if (search.distrito) setDistrito(search.distrito);
+    if (search.centroPoblado) setCentroPoblado(search.centroPoblado);
+    if (search.referencia) setReferencia(search.referencia);
+    if (search.especie) {
+      setEspecie(search.especie);
+      setTab(2);
+    }
+    if (search.organo) setOrgano(search.organo);
+    if (search.areaSembrada) setAreaSembrada(search.areaSembrada);
+    if (search.pesoUnidad) setPesoUnidad(search.pesoUnidad);
+    if (search.pesoValor) setPesoValor(search.pesoValor);
+    if (search.areaUnidad) setAreaUnidad(search.areaUnidad);
+    if (search.areaValor) setAreaValor(search.areaValor);
+    if (search.descripcion) setDescripcion(search.descripcion);
+    if (search.lugar === "campo" || search.lugar === "almacen") setLugar(search.lugar);
+    if (search.tab === "1" || search.tab === "2") setTab(Number(search.tab) as 1 | 2);
+  }, []);
+
+  // PoC image handoff: the Flutter app appends the detected photo as a data
+  // URL inside the location fragment (#imagen=...). Fragments never touch the
+  // server, so there is nothing to fetch and no storage involved. The image
+  // is pre-attached as an editable entry (same as "Adjuntar imagen").
+  useEffect(() => {
+    const dataUrl = parseSenasaImageFragment(window.location.hash);
+    if (!dataUrl) return;
+    let cancelled = false;
+    senasaDataUrlToFile(dataUrl).then((file) => {
+      if (cancelled || !file) {
+        if (!cancelled && dataUrl) toast.error("No se pudo cargar la imagen del avistamiento");
+        return;
+      }
+      setFiles((prev) => [...prev, file]);
+      setPreviews((prev) => [...prev, URL.createObjectURL(file)]);
+      toast.success("Imagen del avistamiento pre-adjuntada");
+      consumeSenasaImageFragment();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cascading ubigeo
   const provinciasList = useMemo(() => (departamento ? getProvincias(departamento) : []), [departamento]);
